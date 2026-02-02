@@ -50,7 +50,7 @@ CS Navigator sits at a slightly higher level: a visual overview + curated links 
 
 ---
 
-## How we built it
+## How it was built
 
 This project is intentionally minimal: no framework, no build step, no backend.
 
