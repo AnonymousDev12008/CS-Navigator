@@ -115,7 +115,7 @@
 
     #tree-wrapper {
       height: calc(100vh - 46px);
-      overflow: hidden; /* we will rely on pan/zoom instead of scroll here */
+      overflow: auto;
       background: var(--bg);
       -webkit-overflow-scrolling: touch;
     }
@@ -125,7 +125,6 @@
       height: 100%;
       display: block;
       background: var(--bg);
-      touch-action: none; /* improves touch zoom/pan behavior */
     }
 
     .link {
@@ -180,6 +179,19 @@
 
     .footer-list li {
       margin-bottom: 2px;
+    }
+
+    /* Mobile header layout */
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .header-meta {
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -494,7 +506,9 @@ const zoom = d3.zoom()
     g.attr("transform", event.transform);
   });
 
-svg.call(zoom);
+svg
+  .call(zoom)
+  .on("wheel.zoom", null);
 
 const nodeHeight = 26;
 const nodeWidth  = 220;
@@ -619,7 +633,7 @@ function update(source) {
     .transition().duration(duration)
     .attr("d", diagonal);
 
-  link.exit().transition().duration(duration)
+  linkExit.transition().duration(duration)
     .attr("d", () => diagonal({
       source: { x: source.x, y: source.y },
       target: { x: source.x, y: source.y }
