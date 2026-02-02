@@ -2,6 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CS Navigator – Learning Map</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
@@ -114,7 +115,7 @@
 
     #tree-wrapper {
       height: calc(100vh - 46px);
-      overflow: auto;
+      overflow: hidden; /* we will rely on pan/zoom instead of scroll here */
       background: var(--bg);
       -webkit-overflow-scrolling: touch;
     }
@@ -122,7 +123,9 @@
     svg {
       width: 100%;
       height: 100%;
+      display: block;
       background: var(--bg);
+      touch-action: none; /* improves touch zoom/pan behavior */
     }
 
     .link {
@@ -242,7 +245,7 @@ const data = {
           name: "Intro to Programming",
           children: [
             { name: "Python Basics", url: "https://www.learnpython.org/" },
-            { name: "Java Basics", url: "https://www.freecodecamp.org/news/learn-java-free-java-courses-for-beginners/" }, // updated[web:198]
+            { name: "Java Basics", url: "https://www.freecodecamp.org/news/learn-java-free-java-courses-for-beginners/" },
             { name: "C Programming", url: "https://www.learn-c.org/" }
           ]
         },
@@ -446,7 +449,7 @@ const data = {
         {
           name: "Mobile Development",
           children: [
-            { name: "Android (Kotlin)", url: "https://developer.android.com/courses/android-basics-kotlin/course" }, // updated[web:204]
+            { name: "Android (Kotlin)", url: "https://developer.android.com/courses/android-basics-kotlin/course" },
             { name: "iOS (Swift)", url: "https://developer.apple.com/tutorials/app-dev-training" },
             { name: "Flutter", url: "https://docs.flutter.dev/get-started/codelab" }
           ]
@@ -462,9 +465,9 @@ const data = {
         {
           name: "UX / UI & HCI",
           children: [
-            { name: "UX Design Basics", url: "https://learnuiux.in" }, // updated[web:210]
-            { name: "UI Design", url: "https://learnui.design/blog/5-practical-exercises-learn-ui-design-free.html" }, // updated[web:211]
-            { name: "Human‑Computer Interaction", url: "https://www.coursera.org/courses?query=human+computer+interaction" } // updated[web:212]
+            { name: "UX Design Basics", url: "https://learnuiux.in" },
+            { name: "UI Design", url: "https://learnui.design/blog/5-practical-exercises-learn-ui-design-free.html" },
+            { name: "Human‑Computer Interaction", url: "https://www.coursera.org/courses?query=human+computer+interaction" }
           ]
         },
         {
@@ -483,6 +486,15 @@ const data = {
 // ------- D3 HORIZONTAL TREE (left → right) -------
 const svg = d3.select("svg");
 const g   = svg.append("g");
+
+// Zoom & pan
+const zoom = d3.zoom()
+  .scaleExtent([0.4, 3])
+  .on("zoom", (event) => {
+    g.attr("transform", event.transform);
+  });
+
+svg.call(zoom);
 
 const nodeHeight = 26;
 const nodeWidth  = 220;
@@ -629,7 +641,7 @@ function update(source) {
         <ul class="footer-list">
           <li>Click a <strong>blue filled</strong> circle to expand or collapse its branch.</li>
           <li>Click a <strong>blue outlined</strong> circle or its label to open the external resource in a new tab.</li>
-          <li>Scroll horizontally and vertically if the map extends beyond the screen.</li>
+          <li>Pinch to zoom and drag to pan around the map on touch devices.</li>
         </ul>
       </div>
     </div>
