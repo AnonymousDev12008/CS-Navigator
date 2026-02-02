@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>CS Navigator – Learning Map</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --link-line: #4b5563;
+      --blue: #3b82f6;
+    }
+
+    /* Dark theme */
+    :root[data-theme="dark"] {
+      --bg: #050814;
+      --bg-alt: #050a18;
+      --border-subtle: #1f2937;
+      --accent: #2563eb;
+      --accent-soft: #1d4ed8;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --footer-bg: #020617;
+    }
+
+    /* Light theme */
+    :root[data-theme="light"] {
+      --bg: #f9fafb;
+      --bg-alt: #e5e7eb;
+      --border-subtle: #cbd5f5;
+      --accent: #2563eb;
+      --accent-soft: #1d4ed8;
+      --text-main: #020617;
+      --text-muted: #4b5563;
+      --footer-bg: #f3f4f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    /* Header */
+    header {
+      padding: 10px 20px;
+      background: radial-gradient(circle at 0% 0%, var(--accent-soft) 0, #020617 42%, #020617 100%);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #60a5fa, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      font-size: 14px;
+      font-weight: 600;
+      color: #e5f2ff;
+    }
+
+    .brand-text-main {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: var(--text-main);
+    }
+
+    .brand-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #e5e7eb;
+      white-space: nowrap;
+      background: transparent;
+    }
+
+    .badge-accent {
+      border-color: rgba(37, 99, 235, 0.8);
+      color: #dbeafe;
+      background: rgba(37, 99, 235, 0.16);
+    }
+
+    #tree-wrapper {
+      height: calc(100vh - 46px);
+      overflow: auto;
+      background: var(--bg);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    .link {
+      fill: none;
+      stroke: var(--link-line);
+      stroke-width: 1.1px;
+    }
+
+    .node text {
+      font-size: 12px;
+      text-anchor: start;
+      alignment-baseline: middle;
+      pointer-events: none;
+      fill: var(--text-main);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      background: var(--footer-bg);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .footer-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 10px 20px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 32px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .footer-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .footer-section-body {
+      line-height: 1.5;
+    }
+
+    .footer-list {
+      margin: 0;
+      padding-left: 14px;
+    }
+
+    .footer-list li {
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="brand-mark">CS</div>
+    <div>
+      <div class="brand-text-main">CS Navigator</div>
+      <div class="brand-text-sub">Interactive map of curated CS learning resources</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="badge badge-accent">Free & Trusted Resources</div>
+    <div class="badge">Click blue nodes to expand · Outlined nodes open links</div>
+    <button id="theme-toggle" class="badge" style="cursor:pointer;">
+      Light mode
+    </button>
+  </div>
+</header>
+
+<div id="tree-wrapper">
+  <svg></svg>
+</div>
+
+<script>
+// Theme toggle (dark / light)
+const rootEl = document.documentElement;
+const savedTheme = localStorage.getItem("cs-nav-theme");
+
+if (savedTheme === "light" || savedTheme === "dark") {
+  rootEl.setAttribute("data-theme", savedTheme);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("theme-toggle");
+  if (!toggleBtn) return;
+
+  const updateButtonLabel = () => {
+    const current = rootEl.getAttribute("data-theme") || "dark";
+    toggleBtn.textContent = current === "dark" ? "Light mode" : "Dark mode";
+  };
+
+  updateButtonLabel();
+
+  toggleBtn.addEventListener("click", () => {
+    const current = rootEl.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    rootEl.setAttribute("data-theme", next);
+    localStorage.setItem("cs-nav-theme", next);
+    updateButtonLabel();
+  });
+});
+
+// ------- DATA WITH UPDATED FREE RESOURCES -------
+const data = {
+  name: "Computer Science Paths",
+  children: [
+    {
+      name: "Programming & CS Fundamentals",
+      children: [
+        {
+          name: "Intro to Programming",
+          children: [
+            { name: "Python Basics", url: "https://www.learnpython.org/" },
+            { name: "Java Basics", url: "https://www.freecodecamp.org/news/learn-java-free-java-courses-for-beginners/" }, // updated[web:198]
+            { name: "C Programming", url: "https://www.learn-c.org/" }
+          ]
+        },
+        {
+          name: "CS Foundations",
+          children: [
+            { name: "Discrete Math", url: "https://ocw.mit.edu/courses/18-062j-mathematics-for-computer-science-fall-2005/" },
+            { name: "Data Structures", url: "https://www.geeksforgeeks.org/data-structures/" },
+            { name: "Algorithms", url: "https://www.geeksforgeeks.org/fundamentals-of-algorithms/" },
+            { name: "TeachYourselfCS", url: "https://teachyourselfcs.com" }
+          ]
+        },
+        {
+          name: "Problem Solving",
+          children: [
+            { name: "LeetCode", url: "https://leetcode.com/" },
+            { name: "HackerRank", url: "https://www.hackerrank.com/domains/tutorials/10-days-of-javascript" },
+            { name: "Codeforces", url: "https://codeforces.com/" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "Web Development",
+      children: [
+        {
+          name: "Frontend Basics",
+          children: [
+            { name: "HTML & CSS", url: "https://www.freecodecamp.org/learn/2022/responsive-web-design/" },
+            { name: "JavaScript Basics", url: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/" },
+            { name: "Responsive Design", url: "https://web.dev/learn/design/" }
+          ]
+        },
+        {
+          name: "Frontend Frameworks",
+          children: [
+            { name: "React", url: "https://www.freecodecamp.org/learn/front-end-development-libraries/#react" },
+            { name: "Vue", url: "https://vuejs.org/guide/introduction.html" },
+            { name: "Angular", url: "https://angular.io/tutorials/first-app" }
+          ]
+        },
+        {
+          name: "Backend Basics",
+          children: [
+            { name: "Node.js & Express", url: "https://www.theodinproject.com/paths/full-stack-javascript/courses/nodejs" },
+            { name: "Django (Python)", url: "https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django" },
+            { name: "Spring Boot (Java)", url: "https://spring.io/guides/gs/spring-boot/" }
+          ]
+        },
+        {
+          name: "Full‑Stack Path",
+          children: [
+            { name: "Full‑Stack JS (TOP)", url: "https://www.theodinproject.com/paths/full-stack-javascript" },
+            { name: "APIs & Auth", url: "https://www.freecodecamp.org/learn/back-end-development-and-apis/" },
+            { name: "Web Projects", url: "https://www.frontendmentor.io/challenges" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "Data Science & AI",
+      children: [
+        {
+          name: "Math for DS",
+          children: [
+            { name: "Linear Algebra", url: "https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/" },
+            { name: "Probability & Stats", url: "https://ocw.mit.edu/courses/6-041sc-probabilistic-systems-analysis-and-applied-probability-fall-2013/" },
+            { name: "Calculus Basics", url: "https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/" }
+          ]
+        },
+        {
+          name: "Data Science Core",
+          children: [
+            { name: "Python for Data", url: "https://www.freecodecamp.org/learn/data-analysis-with-python/" },
+            { name: "Pandas & NumPy", url: "https://www.kaggle.com/learn/python" },
+            { name: "Data Visualization", url: "https://www.freecodecamp.org/learn/data-visualization/" }
+          ]
+        },
+        {
+          name: "Machine Learning",
+          children: [
+            { name: "ML Basics", url: "https://developers.google.com/machine-learning/crash-course" },
+            { name: "Deep Learning", url: "https://www.youtube.com/playlist?list=PLkFD6_40KJIznC9CDbVTjAF2oyt8_VAe3" },
+            { name: "MLOps Intro", url: "https://madewithml.com/courses/mlops/" }
+          ]
+        },
+        {
+          name: "AI Specializations",
+          children: [
+            { name: "NLP", url: "https://huggingface.co/learn/nlp-course/chapter1/1" },
+            { name: "Computer Vision", url: "https://course.fast.ai/" },
+            { name: "Reinforcement Learning", url: "https://spinningup.openai.com/en/latest/" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "Systems, OS & Networking",
+      children: [
+        {
+          name: "Operating Systems",
+          children: [
+            { name: "OS Concepts", url: "https://pages.cs.wisc.edu/~remzi/OSTEP/" },
+            { name: "Linux Basics", url: "https://linuxjourney.com/" },
+            { name: "Shell Scripting", url: "https://tldp.org/LDP/abs/html/" }
+          ]
+        },
+        {
+          name: "Computer Networks",
+          children: [
+            { name: "Networking Basics", url: "https://www.freecodecamp.org/news/learn-networking-with-free-online-courses/" },
+            { name: "TCP/IP & Routing", url: "https://www.practicalnetworking.net/" },
+            { name: "Wireshark Intro", url: "https://www.wireshark.org/docs/wsug_html_chunked/ChWorkBuildDisplaySection.html" }
+          ]
+        },
+        {
+          name: "Systems Programming",
+          children: [
+            { name: "C & Memory", url: "https://csapp.cs.cmu.edu/3e/home.html" },
+            { name: "Compilers Intro", url: "https://craftinginterpreters.com/" },
+            { name: "Distributed Systems", url: "https://www.dedabebo.com/distributed-systems-reading-list/" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "Cybersecurity & Ethical Hacking",
+      children: [
+        {
+          name: "Security Basics",
+          children: [
+            { name: "Cybersecurity Intro", url: "https://cs50.harvard.edu/cybersecurity/2024/" },
+            { name: "Security+ Style Basics", url: "https://www.professormesser.com/security-plus/sy0-601/sy0-601-course/" },
+            { name: "Linux Security", url: "https://linuxsecurity.expert/tutorials/" }
+          ]
+        },
+        {
+          name: "Hands‑on Labs",
+          children: [
+            { name: "TryHackMe", url: "https://tryhackme.com/" },
+            { name: "Hack The Box", url: "https://www.hackthebox.com/" },
+            { name: "OverTheWire", url: "https://overthewire.org/wargames/" }
+          ]
+        },
+        {
+          name: "Web & Network Hacking",
+          children: [
+            { name: "OWASP Top 10", url: "https://owasp.org/www-project-top-ten/" },
+            { name: "Burp Suite Basics", url: "https://portswigger.net/web-security" },
+            { name: "Network Pentesting", url: "https://tryhackme.com/module/network-security" }
+          ]
+        },
+        {
+          name: "Blue Team & DFIR",
+          children: [
+            { name: "Blue Team Basics", url: "https://www.youtube.com/playlist?list=PLt9cUwGw6CYF0vFJxux1DPZWS9P_7PX2Z" },
+            { name: "Digital Forensics", url: "https://dfir.training/resources/free-training" },
+            { name: "SIEM & Logs", url: "https://learn.microsoft.com/en-us/azure/sentinel/tutorial-monitor-your-data" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "DevOps & Cloud",
+      children: [
+        {
+          name: "DevOps Fundamentals",
+          children: [
+            { name: "Git & GitHub", url: "https://learngitbranching.js.org/" },
+            { name: "CI/CD Basics", url: "https://www.freecodecamp.org/news/devops-full-course/" },
+            { name: "Docker Basics", url: "https://docker-curriculum.com/" }
+          ]
+        },
+        {
+          name: "Cloud Platforms",
+          children: [
+            { name: "AWS Basics", url: "https://www.aws.training/Details/Curriculum?id=27076" },
+            { name: "Azure Fundamentals", url: "https://learn.microsoft.com/en-us/training/paths/azure-fundamentals/" },
+            { name: "GCP Basics", url: "https://cloudskillsboost.google/paths/11" }
+          ]
+        },
+        {
+          name: "Infrastructure & Monitoring",
+          children: [
+            { name: "Kubernetes Intro", url: "https://kubernetes.io/docs/tutorials/kubernetes-basics/" },
+            { name: "IaC with Terraform", url: "https://developer.hashicorp.com/terraform/tutorials" },
+            { name: "Monitoring & Logging", url: "https://grafana.com/tutorials/grafana-fundamentals/" }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: "Specializations & Other Fields",
+      children: [
+        {
+          name: "Mobile Development",
+          children: [
+            { name: "Android (Kotlin)", url: "https://developer.android.com/courses/android-basics-kotlin/course" }, // updated[web:204]
+            { name: "iOS (Swift)", url: "https://developer.apple.com/tutorials/app-dev-training" },
+            { name: "Flutter", url: "https://docs.flutter.dev/get-started/codelab" }
+          ]
+        },
+        {
+          name: "Game Development",
+          children: [
+            { name: "Unity", url: "https://learn.unity.com/pathway/junior-programmer" },
+            { name: "Unreal Engine", url: "https://dev.epicgames.com/community/learning" },
+            { name: "Game Design Basics", url: "https://ocw.mit.edu/courses/cms-608-game-design-spring-2014/" }
+          ]
+        },
+        {
+          name: "UX / UI & HCI",
+          children: [
+            { name: "UX Design Basics", url: "https://learnuiux.in" }, // updated[web:210]
+            { name: "UI Design", url: "https://learnui.design/blog/5-practical-exercises-learn-ui-design-free.html" }, // updated[web:211]
+            { name: "Human‑Computer Interaction", url: "https://www.coursera.org/courses?query=human+computer+interaction" } // updated[web:212]
+          ]
+        },
+        {
+          name: "Databases & Big Data",
+          children: [
+            { name: "SQL Basics", url: "https://www.freecodecamp.org/learn/relational-database/" },
+            { name: "NoSQL & MongoDB", url: "https://learn.mongodb.com/learn/paths/mongodb-developer" },
+            { name: "Big Data & Hadoop", url: "https://ocw.mit.edu/courses/6-830-database-systems-fall-2010/" }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// ------- D3 HORIZONTAL TREE (left → right) -------
+const svg = d3.select("svg");
+const g   = svg.append("g");
+
+const nodeHeight = 26;
+const nodeWidth  = 220;
+
+const tree = d3.tree().nodeSize([nodeHeight, nodeWidth]);
+const diagonal = d3.linkHorizontal()
+  .x(d => d.y)
+  .y(d => d.x);
+
+const root = d3.hierarchy(data);
+root.x0 = 0;
+root.y0 = 0;
+
+if (root.children) {
+  root.children.forEach(collapse);
+}
+
+function collapse(d) {
+  if (d.children) {
+    d._children = d.children;
+    d._children.forEach(collapse);
+    d.children = null;
+  }
+}
+
+update(root);
+
+function update(source) {
+  const duration = 250;
+
+  tree(root);
+
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+
+  root.each(d => {
+    if (d.x < minX) minX = d.x;
+    if (d.x > maxX) maxX = d.x;
+    if (d.y < minY) minY = d.y;
+    if (d.y > maxY) maxY = d.y;
+  });
+
+  const margin = 40;
+  const width  = maxY - minY + margin * 2;
+  const height = maxX - minX + margin * 2;
+
+  svg.attr("viewBox", [
+    minY - margin,
+    minX - margin,
+    width,
+    height
+  ]);
+
+  const nodes = root.descendants().reverse();
+  const links = root.links();
+
+  const node = g.selectAll("g.node")
+    .data(nodes, d => d.id || (d.id = d.data.name + "-" + d.depth));
+
+  const nodeEnter = node.enter()
+    .append("g")
+    .attr("class", "node")
+    .attr("transform", () => `translate(${source.y0},${source.x0})`)
+    .on("click", (event, d) => {
+      event.stopPropagation();
+
+      if (!d.children && !d._children && d.data.url) {
+        window.open(d.data.url, "_blank");
+        return;
+      }
+
+      if (d.children) {
+        d._children = d.children;
+        d.children = null;
+      } else {
+        d.children = d._children;
+        d._children = null;
+      }
+      update(d);
+    });
+
+  nodeEnter.append("circle")
+    .attr("r", 0)
+    .attr("fill", d =>
+      d.children || d._children
+        ? "#3b82f6"
+        : getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()
+    )
+    .attr("stroke", "#3b82f6")
+    .attr("stroke-width", 1.4)
+    .transition().duration(duration)
+    .attr("r", 6);
+
+  nodeEnter.append("text")
+    .attr("x", 10)
+    .attr("dy", "0.35em")
+    .text(d => d.data.name);
+
+  const nodeUpdate = nodeEnter.merge(node);
+
+  nodeUpdate.transition().duration(duration)
+    .attr("transform", d => `translate(${d.y},${d.x})`);
+
+  const nodeExit = node.exit().transition().duration(duration)
+    .attr("transform", () => `translate(${source.y},${source.x})`)
+    .remove();
+
+  nodeExit.select("circle").attr("r", 0);
+
+  const link = g.selectAll("path.link")
+    .data(links, d => d.target.id);
+
+  const linkEnter = link.enter()
+    .insert("path", "g")
+    .attr("class", "link")
+    .attr("d", () => diagonal({
+      source: { x: source.x0, y: source.y0 },
+      target: { x: source.x0, y: source.y0 }
+    }));
+
+  linkEnter.merge(link)
+    .transition().duration(duration)
+    .attr("d", diagonal);
+
+  link.exit().transition().duration(duration)
+    .attr("d", () => diagonal({
+      source: { x: source.x, y: source.y },
+      target: { x: source.x, y: source.y }
+    }))
+    .remove();
+
+  root.each(d => {
+    d.x0 = d.x;
+    d.y0 = d.y;
+  });
+}
+</script>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-section-title">How to use this map</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>Click a <strong>blue filled</strong> circle to expand or collapse its branch.</li>
+          <li>Click a <strong>blue outlined</strong> circle or its label to open the external resource in a new tab.</li>
+          <li>Scroll horizontally and vertically if the map extends beyond the screen.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-section-title">What this shows</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>Self‑study paths for programming, web, data, systems, security, and more.</li>
+          <li>Only <strong>free</strong> learning resources, curated from trusted providers.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-section-title">Notes</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>This map is a guide, not a strict order — follow branches that match your goals.</li>
+          <li>Resources may change over time; if a link breaks, search for the course name.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
