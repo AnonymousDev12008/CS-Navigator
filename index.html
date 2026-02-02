@@ -37,11 +37,18 @@
 
     * { box-sizing: border-box; }
 
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text-main);
+      overflow: hidden; /* lock page scroll, keep everything in one view */
     }
 
     /* Header */
@@ -52,6 +59,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .brand {
@@ -113,11 +121,11 @@
       background: rgba(37, 99, 235, 0.16);
     }
 
+    /* Tree viewport between header and footer */
     #tree-wrapper {
-      height: calc(100vh - 46px);
-      overflow: auto;
+      flex: 1 1 auto;
+      overflow: hidden; /* no native scroll, only pan/zoom inside SVG */
       background: var(--bg);
-      -webkit-overflow-scrolling: touch;
     }
 
     svg {
@@ -147,6 +155,7 @@
       background: var(--footer-bg);
       color: var(--text-muted);
       font-size: 12px;
+      flex-shrink: 0;
     }
 
     .footer-inner {
@@ -216,6 +225,41 @@
 <div id="tree-wrapper">
   <svg></svg>
 </div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-section-title">How to use this map</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>Click a <strong>blue filled</strong> circle to expand or collapse its branch.</li>
+          <li>Click a <strong>blue outlined</strong> circle or its label to open the external resource in a new tab.</li>
+          <li>Pinch to zoom and drag to pan around the map on touch devices.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-section-title">What this shows</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>Self‑study paths for programming, web, data, systems, security, and more.</li>
+          <li>Only <strong>free</strong> learning resources, curated from trusted providers.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-section-title">Notes</div>
+      <div class="footer-section-body">
+        <ul class="footer-list">
+          <li>This map is a guide, not a strict order — follow branches that match your goals.</li>
+          <li>Resources may change over time; if a link breaks, search for the course name.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
 
 <script>
 // Theme toggle (dark / light)
@@ -499,7 +543,7 @@ const data = {
 const svg = d3.select("svg");
 const g   = svg.append("g");
 
-// Zoom & pan
+// Zoom & pan inside the viewport
 const zoom = d3.zoom()
   .scaleExtent([0.4, 3])
   .on("zoom", (event) => {
@@ -508,7 +552,7 @@ const zoom = d3.zoom()
 
 svg
   .call(zoom)
-  .on("wheel.zoom", null);
+  .on("wheel.zoom", null); // disable wheel scroll zoom; use drag/pinch
 
 const nodeHeight = 26;
 const nodeWidth  = 220;
@@ -633,7 +677,7 @@ function update(source) {
     .transition().duration(duration)
     .attr("d", diagonal);
 
-  linkExit.transition().duration(duration)
+  link.exit().transition().duration(duration)
     .attr("d", () => diagonal({
       source: { x: source.x, y: source.y },
       target: { x: source.x, y: source.y }
@@ -646,40 +690,5 @@ function update(source) {
   });
 }
 </script>
-
-<footer>
-  <div class="footer-inner">
-    <div>
-      <div class="footer-section-title">How to use this map</div>
-      <div class="footer-section-body">
-        <ul class="footer-list">
-          <li>Click a <strong>blue filled</strong> circle to expand or collapse its branch.</li>
-          <li>Click a <strong>blue outlined</strong> circle or its label to open the external resource in a new tab.</li>
-          <li>Pinch to zoom and drag to pan around the map on touch devices.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div>
-      <div class="footer-section-title">What this shows</div>
-      <div class="footer-section-body">
-        <ul class="footer-list">
-          <li>Self‑study paths for programming, web, data, systems, security, and more.</li>
-          <li>Only <strong>free</strong> learning resources, curated from trusted providers.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div>
-      <div class="footer-section-title">Notes</div>
-      <div class="footer-section-body">
-        <ul class="footer-list">
-          <li>This map is a guide, not a strict order — follow branches that match your goals.</li>
-          <li>Resources may change over time; if a link breaks, search for the course name.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</footer>
 </body>
 </html>
