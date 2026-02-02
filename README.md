@@ -6,6 +6,11 @@ It’s meant for students and self‑taught learners who want to see “the whol
 
 ---
 
+## Live app
+https://cs-navigator-xi.vercel.app
+
+---
+
 ## Why this exists
 
 When you’re starting out, CS can feel like a messy list of buzzwords: OS, networking, DevOps, ML, web, security… and a thousand random tutorials.  
