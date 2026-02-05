@@ -65,7 +65,7 @@ This project is intentionally minimal: no framework, no build step, no backend.
   - Each node has a `name`, and some have a `url`; children form the tree structure.
 
 - **Layout with D3.js**  
-  - We use `d3.hierarchy` and `d3.tree()` to compute node positions for a tidy **left‑to‑right tree**.[web:262]  
+  - we use `d3.hierarchy` and `d3.tree()` to compute node positions for a tidy **left‑to‑right tree**.  
   - Links are rendered as SVG paths with `d3.linkHorizontal`.
 
 - **Interaction model**  
@@ -86,7 +86,7 @@ The whole thing lives in `index.html`, which makes it easy to read through the s
 You don’t need anything special to run this.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/cs-navigator.git
+git clone https://github.com/AnonymousDev12008/cs-navigator.git
 cd cs-navigator
 # Then open index.html in your browser (double-click or File → Open)
 
